@@ -2,7 +2,6 @@ package com.kyojin.flos.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -11,11 +10,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 @Service
 public class JwtService {
@@ -34,34 +33,35 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String extractEmail(String token){
+    public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public <T> T extractClaim(String token, java.util.function.Function<Claims, T> claimsResolver) {
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(Map.of(), userDetails);
+        return generateToken(new HashMap<>(), userDetails);
     }
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails){
-        return Jwts.builder().claims(extraClaims)
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        return Jwts.builder()
+                .claims(extraClaims)
                 .subject(userDetails.getUsername())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + exp * 60 * 1000 ))
-                .signWith(key, Jwts.SIG.HS256)
+                .issuedAt(Date.from(Instant.now()))
+                .expiration(Date.from(Instant.now().plusMillis(exp * 60 * 1000)))
+                .signWith(key)
                 .compact();
     }
 
-    public Boolean isTokenValid(String token, UserDetails userDetails) {
+    public boolean isTokenValid(String token, UserDetails userDetails) {
         final String email = extractEmail(token);
         return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    public Boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(Date.from(Instant.now()));
     }
 
@@ -70,13 +70,10 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
-
-    private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
-
-
 }
