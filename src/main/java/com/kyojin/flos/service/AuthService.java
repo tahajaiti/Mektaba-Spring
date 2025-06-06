@@ -5,6 +5,7 @@ import com.kyojin.flos.dto.auth.LoginRequest;
 import com.kyojin.flos.dto.auth.RegisterRequest;
 import com.kyojin.flos.entity.Role;
 import com.kyojin.flos.entity.User;
+import com.kyojin.flos.exceptions.NotFoundException;
 import com.kyojin.flos.repository.RoleRepository;
 import com.kyojin.flos.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,7 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request){
         Role role = roleRepository.findByName("user")
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+                .orElseThrow(NotFoundException::new);
 
         User user = new User(
                 null,
@@ -46,7 +47,7 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(NotFoundException::new);
 
         String token = jwtService.generateToken(user);
         return new AuthResponse(token, user.getName(), user.getEmail(), user.getRole().getName());
