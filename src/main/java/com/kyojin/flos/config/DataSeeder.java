@@ -17,12 +17,16 @@ public class DataSeeder {
     }
 
     @PostConstruct
-    public void seedData() {
-        if (roleRepository.findByName("user").isEmpty()) {
-            roleRepository.save(new Role(1L,"user"));
-        }
+    public void init() {
         if (roleRepository.findByName("admin").isEmpty()) {
-            roleRepository.save(new Role(2L,"admin"));
+            Role role = new Role();
+            role.setName("admin");
+            roleRepository.save(role);
+        }
+        if (roleRepository.findByName("user").isEmpty()) {
+            Role role = new Role();
+            role.setName("user");
+            roleRepository.save(role);
         }
     }
 
